@@ -1,0 +1,37 @@
+﻿Descriptive Statistics
+Appendix B
+#Code for unzip file and output.
+$ python3
+>>>import zipfile
+>>>import csv
+>>> import boto3
+>>>import pandas as pd
+>>> from io import BytesIO
+>>> bucket="duidui"
+>>> zipfile_to_unzip="stockmarket.zip"
+>>> s3_client = boto3.client('s3', use_ssl=False)
+>>> s3_resource = boto3.resource('s3')
+>>> zip_obj = s3_resource.Object(bucket_name=bucket, key=zipfile_to_unzip)
+>>> buffer = BytesIO(zip_obj.get()["Body"].read())
+>>> z = zipfile.ZipFile(buffer)
+>>> for filename in z.namelist():
+...     print('Working on ' + filename)
+...     s3_resource.meta.client.upload_fileobj(z.open(filename), Bucket=bucket, Key=f'{filename}')
+#output:
+for filename in filename_list:
+...      filename_parts = filename.split('_')
+...      ticker_symbol = filename_parts[0]
+...      df = pd.read_csv("s3://duidui/" + filename, sep=",", header=0)
+...      df['ticker_symbol'] = ticker_symbol
+...      new_file_name = filename + "_with_ticker.csv"
+...      df.to_csv("s3://duidui/" + new_file_name)
+...      print(new_file_name)
+... 
+#Code to read file:
+>>> import pandas as pd
+>>> df = pd.read_csv('s3://duidui/ADANIPORTS_with_indicators_.csv')
+>>> df.info()
+#code to check mean, stdev, min, max, and some related data for all variables.
+df.describe()
+#Code to check null value:
+ df.isnull()
