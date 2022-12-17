@@ -1,0 +1,37 @@
+﻿Descriptive Statistics
+Appendix A
+#configure CLI
+“aws configure”
+#entered my AWS Access Key ID and AWS secret Access Key
+#entered region name: 
+us-east-2
+#entered output format:
+json
+ “aws ec2 describe-instances” 
+“aws s3 ls”
+“aws iam list-users”
+#created a Bucket in Amazon S3 
+“aws s3api create-bucket --duidui --region us-east-2 --create-bucket-configuration \ LocationConstraint=us-east-2”.
+#install the Kaggle Command Line Interface(CLI) for Python 3
+“ pip3 install kaggle” 
+#make a directory for Kaggle
+“mkdir .Kaggle”
+#create a new kaggle.json file
+ “ nano .kaggle/kaggle.json”
+# pasted the text from file which was downloaded from 
+“ Create new API Token” on Kaggle. The text included “username” and “key”:{"username":"shanduiduidui","key":"f6a32438ae3819269f120cb3b1a9aad6"}. Then I click key “control” and “X” in the same time, and enter “Y”
+#secured the file by coding 
+“ chmod 600  .kaggle/kaggle.json”
+ “kaggle datasets list” 
+#used the nano text editor to make some changes in the kaggle_api_extended.py file:
+ “nano  ~/.local/lib/python3.7/site-packages/kaggle/api/kaggle_api_extended.py”.
+#used the key “ Control”, “Shift” and “-”  jumped to line 1582 of the file
+#Change code
+“ if not os.path.exists(outpath):” to “if not os.path.exists(outpath) and outpath != "-":”
+#Change code:
+“with open(outfile, 'wb') as out:'' to “with open(outfile, 'wb') if outpath != "-" else os.fdopen(sys.stdout.fileno(), 'wb', closefd=False) as out:” in line 1594 of file. 
+# saved it and exited from Nano.
+#download data set directly from kaggle to my S3 bucket
+“kaggle dataset download -d debashis74017//stock-market-data-nifty-50-stocks-1-min-data-p -|aws s3 cp- s3://duidui/stockmarket.zip” 
+#to check the download file in S3.
+“aws s3 ls s3://duidui/”
