@@ -1,0 +1,165 @@
+﻿Coding and Modeling 
+Appendix  C
+#use python to combine all and add new column ticker
+python3
+filename_list =['ADANIPORTS_with_indicators_.csv', 'ASIANPAINT_with_indicators_.csv', 'AXISBANK_with_indicators_.csv', 'BAJAJFINSV_with_indicators_.csv', 'BAJFINANCE_with_indicators_.csv', 'BHARTIARTL_with_indicators_.csv', 'BPCL_with_indicators_.csv', 'BRITANNIA_with_indicators_.csv', 'CIPLA_with_indicators_.csv', 'COALINDIA_with_indicators_.csv', 'DIVISLAB_with_indicators_.csv', 'DRREDDY_with_indicators_.csv', 'EICHERMOT_with_indicators_.csv', 'GRASIM_with_indicators_.csv', 'HCLTECH_with_indicators_.csv', 'HDFCBANK_with_indicators_.csv', 'HDFCLIFE_with_indicators_.csv', 'HDFC_with_indicators_.csv', 'HEROMOTOCO_with_indicators_.csv', 'HINDALCO_with_indicators_.csv', 'HINDUNILVR_with_indicators_.csv', 'ICICIBANK_with_indicators_.csv', 'INDUSINDBK_with_indicators_.csv', 'INFY_with_indicators_.csv', 'IOC_with_indicators_.csv', 'ITC_with_indicators_.csv', 'JSWSTEEL_with_indicators_.csv', 'KOTAKBANK_with_indicators_.csv', 'LT_with_indicators_.csv', 'MARUTI_with_indicators_.csv', 'M_M_with_indicators_.csv', 'NESTLEIND_with_indicators_.csv', 'NIFTY 50_with_indicators_.csv', 'NIFTY BANK_with_indicators_.csv', 'NTPC_with_indicators_.csv', 'ONGC_with_indicators_.csv', 'POWERGRID_with_indicators_.csv', 'RELIANCE_with_indicators_.csv', 'SBILIFE_with_indicators_.csv', 'SBIN_with_indicators_.csv', 'SHREECEM_with_indicators_.csv', 'SUNPHARMA_with_indicators_.csv', 'TATACONSUM_with_indicators_.csv', 'TATAMOTORS_with_indicators_.csv', 'TATASTEEL_with_indicators_.csv', 'TCS_with_indicators_.csv', 'TECHM_with_indicators_.csv', 'TITAN_with_indicators_.csv', 'ULTRACEMCO_with_indicators_.csv', 'UPL_with_indicators_.csv', 'WIPRO_with_indicators_.csv']
+# use for loop to add a ticker symbol for all files
+for filename in filename_list:
+  
+  # split up the name of the file on underscores
+    filename_parts = filename.split('_')
+    # filename_parts is now a list with the different parts in it
+    # The first part is the ticker symbol name
+    ticker_symbol = filename_parts[0]
+
+
+# open this file
+     df= pd.read_csv("s3://duidui/" + filename, sep=",", header=True)
+ df['ticker_symbol]' = ticker_symbol
+    prediction_file = filename + "_with_ticker.csv"
+    df.write_csv("s3://duidui/" + prediction_file)
+
+
+#install pyspark
+pyspark
+# use pyspark to read file 
+from pyspark.sql.functions import *
+from pyspark.sql.window import Window
+
+
+file_path="s3a://duidui/ADANIPORTS_with_indicators_.csv_with_ticker.csv”
+stocks=spark.read.csv(file_path,header=True)
+stocks.show()    
+stock_1=spark.read.csv(file_path,header=True,inferSchema=True)
+stock_1.printSchema()   
+>>> stock_1.summary().show()
+#check null value 
+>>>import pyspark.sql.functions as f
+>>>data_agg=stock_1.agg(*[f.count(f.when(f.isnull(c),c)).alias(c)for c in stock_1.columns])
+>>>data_agg.show()
+# see the summary of open and close, including mean,stssev,min,max…
+stock_1.select (‘date’, ‘open’, ‘close’). describe(). show()  
+# to check date column
+stock_1.groupBy(‘date’).count().show()
+#drop Kama30 and sma10 columns
+stock_1=stock_1.drop(*[‘KAMA30’, ‘sma10’])
+stock_1.columns
+# check columns number
+(stock_1.count), len(stock_1.columns)
+# READ FILE  to made label 
+pyspark
+from pyspark.sql.functions import *
+from pyspark.sql.window import Window
+file_path=["s3a://duidui/M_M_with_indicators_.csv_with_ticker.csv","s3a://duidui/NESTLEIND_with_indicators_.csv_with_ticker.csv","s3a://duidui/ADANIPORTS_with_indicators_.csv_with_ticker.csv"]
+stocks=spark.read.csv(file_path,header=True)
+stocks.show()
+stocks.printSchema()   
+stocks.summary().show()
+#check null
+import pyspark.sql.functions as f
+stocks_agg=stocks.agg(*[f.count(f.when(f.isnull(c),c)).alias(c)for c in stocks.columns]).show()
+Out put All show zero
+
+
+stocks = stocks.withColumn("trade_date", to_date(col("date")))
+w = Window.partitionBy('ticker_symbol', 'trade_date').orderBy('ticker_symbol', 'trade_date')
+stocks = stocks.withColumn("rn",row_number().over(w))
+stocks.withColumn("rn",row_number().over(w)).select('ticker_symbol','date','rn','close').show()
+#test:
+stocks.withColumn("rn",row_number().over(w)).show()
+daily_stocks = stocks.withColumn("rn",row_number().over(w)).filter(col("rn") == 1)
+stocks.withColumn("rn",row_number().over(w)).filter(col("rn") == 1).select('ticker_symbol','date','rn','close').sort('ticker_symbol','date').show()
+daily_stocks.select('ticker_symbol','trade_date','rn','open','high','low','close', 'sma5', 'sma10', 'sma15').sort('ticker_symbol','trade_date').show()
+# Get the 1 day lag price 
+
+
+w = Window().partitionBy('ticker_symbol').orderBy(col('trade_date'))
+daily_stocks.withColumn("prior_close", lag("close").over(w) ).select('trade_date','close','prior_close').show()
+daily_stocks= daily_stocks.withColumn("prior_close", lag("close").over(w) )
+daily_stocks.select('ticker_symbol','trade_date','rn','open','high','low','prior_close', 'close', 'sma5', 'sma10', 'sma15').sort('ticker_symbol','trade_date').show()
+daily_stocks.withColumn("higher_close", when (col("close") >= col("prior_close"), 1).otherwise(0)).select('ticker_symbol','trade_date','rn','open','high','low', 'prior_close', 'close', 'higher_close', 'sma5', 'sma10', 'sma15').sort('ticker_symbol','trade_date').show()
+daily_stocks= daily_stocks.withColumn("higher_close", when (col("close") >= col("prior_close"), 1).otherwise(0)).
+#save as output
+output_file_path="s3://ballballball/stocks_daliy.tsv"
+daily_stocks.write.options(header='True', delimiter='\t').csv(output_file_path)
+
+
+#Save as out put
+output_file_path="s3://duidui/cleaned_amazon_reviews_us_Digital_Software_v1_00.tsv"
+>>> daily_sdf.write.options(header='True', delimiter='\t').csv(output_file_path)
+
+
+# made prediction model 1st time
+pyspark
+
+
+from pyspark.ml.classification import LogisticRegression, LogisticRegressionModel
+from pyspark.ml.evaluation import *
+from pyspark.sql.functions import *
+from pyspark.ml.feature import StringIndexer, OneHotEncoder, VectorAssembler
+from pyspark.ml import Pipeline
+from pyspark.ml.tuning import *
+import numpy as np
+
+
+>>> daily_stocks= daily_stocks.withColumn("higher_close", when (col("close") >= col("prior_close"), 1).otherwise(0))
+>>> daily_stocks_train, daily_stocks_test = daily_stocks.randomSplit([0.8, 0.2], seed=43)
+>>> training_ratio =daily_stocks_train.count() / daily_stocks.count()
+>>>print(training_ratio)                                                       
+0.8045055364642993
+>>> lr = LogisticRegression(maxIter=10)
+>>> model = lr.fit(daily_stocks_train) 
+logistic = LogisticRegression().fit(daily_stocks_train)
+prediction = logistic.transform(daily_stocks_test)
+
+
+ # Code for Final Model 
+# create an indexer
+indexer = StringIndexer(inputCols=["open", "high", "low", "close"], outputCols=["openIndex", "highIndex", "lowIndex","closeIndex"],handleInvalid="keep")
+# create an encoder
+encoder=OneHotEncoder(inputCols=["openIndex","highIndex","lowIndex","closeIndex"],outputCols=["openVector","highVector","lowVector","closeVector"],dropLast=False, handleInvalid="keep")
+#Create an assembler
+assembler = VectorAssembler(inputCols=["openVector","highVector","lowVector","closeVector"], outputCol="features")
+#create the pipeline
+daily_stocks_pipe=Pipeline(stages= [indexer, encoder,assembler])
+#call.fit to transform the data
+transformed_sdf=daily_stocks_pipe.fit(daily_stocks).transform(daily_stocks)
+transformed_sdf.show()
+#review the transformed feature
+transformed_sdf.select('age','gender','zip','food','drink','total','tip','label', 'features').show(20, truncate=False)
+# rename label for moldel 
+fdf = transformed_sdf.withColumn("label", when (col("close") >= col("prior_close"), 1).otherwise(0))
+fdf.select("open", "high", "low", "close","label").show(20,truncate=False)
+#split data into training and test sets
+trainingData, testData =fdf.randomSplit([0.7, 0.3], seed=100)
+# Create a logisticRegression Estimator
+lr = LogisticRegression()
+#Fit the model to the training data 
+model = lr.fit(trainingData)
+#Show model coefficient and intercept
+print("Coefficients: ", model.coefficients)
+print("Intercept: ", model.intercept)
+test_results = model.transform(testData)
+#Show the test result
+test_results.select('date','high','low','close','rawPrediction','probability','prediction','label').show(truncate=False)
+#Show the confusion matrix
+test_results.groupby("label").pivot("prediction").count().show()
+# create a evaluator to see how works for model
+evaluator = BinaryClassificationEvaluator(metricName="areaUnderROC")
+# create  the parameter grid 
+grid = ParamGridBuilder().build()
+
+
+# create a crossValidator
+cv = CrossValidator(estimator=lr, estimatorParamMaps=grid, evaluator=evaluator, numFolds=3 )
+# use the CrossValidator to fit the training data 
+cv = cv.fit(trainingData)
+# show the average performance for 3 folds 
+cv.avgMetrics
+[0.49160470419018937]
+#evaluate the test data using the cross-validator model
+evaluator.evaluate(cv.transform(testData))
+0.5150888803788911  
+#save model
+model_path="stock_logistic_regression_mode"
+model.write().overwrite().save(model_path)
