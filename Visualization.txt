@@ -1,5 +1,6 @@
-﻿Visualization
-Appendix  D
+Step fo Visualization
+Appendix D 
+_ In this process, create visualizations for the data and prediction results. Test code in pyspark, also use Teableau as tool. 
 pip3 install matplotlib
 pip3 install pandas 
 pip3 install seaborn
